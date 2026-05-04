@@ -2,12 +2,6 @@ name: Wakeup Claude
 
 on:
   workflow_dispatch:
-    inputs:
-      index:
-        description: 'Index in CLAUDE_CODE_OAUTH_TOKENS JSON array (0-based)'
-        required: true
-        type: number
-        default: 0
 
 permissions:
   contents: read
