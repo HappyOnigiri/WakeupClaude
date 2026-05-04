@@ -1,0 +1,45 @@
+name: Wakeup Claude
+
+on:
+  workflow_dispatch:
+    inputs:
+      index:
+        description: 'Index in CLAUDE_CODE_OAUTH_TOKENS JSON array (0-based)'
+        required: true
+        type: number
+        default: 0
+
+permissions:
+  contents: read
+
+jobs:
+  wakeup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Resolve OAuth token from JSON array
+        env:
+          TOKENS_JSON: ${{ secrets.CLAUDE_CODE_OAUTH_TOKENS }}
+          INDEX: ${{ inputs.index }}
+        run: |
+          set -euo pipefail
+          if [ -z "${TOKENS_JSON:-}" ]; then
+            echo "::error::Secret CLAUDE_CODE_OAUTH_TOKENS is not set"
+            exit 1
+          fi
+          TOKEN=$(printf '%s' "$TOKENS_JSON" | jq -r --argjson i "$INDEX" '.[$i] // empty')
+          if [ -z "$TOKEN" ]; then
+            echo "::error::No token at index $INDEX"
+            exit 1
+          fi
+          echo "::add-mask::$TOKEN"
+          echo "CLAUDE_TOKEN=$TOKEN" >> "$GITHUB_ENV"
+
+      - name: Run Claude (haiku, prompt='hi')
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ env.CLAUDE_TOKEN }}
+          prompt: "hi"
+          claude_args: |
+            --model haiku
+            --max-turns 1
