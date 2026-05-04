@@ -5,16 +5,16 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
-  prepare:
+  wakeup:
     runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    timeout-minutes: 10
     steps:
-      - name: Build index matrix from token array
-        id: set-matrix
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Run Claude for all tokens
         env:
           TOKENS_JSON: ${{ secrets.CLAUDE_CODE_OAUTH_TOKENS }}
         run: |
@@ -23,32 +23,9 @@ jobs:
             echo "::error::Secret CLAUDE_CODE_OAUTH_TOKENS is not set"
             exit 1
           fi
-          INDICES=$(printf '%s' "$TOKENS_JSON" | jq -c '[range(length)]')
-          echo "matrix=$INDICES" >> "$GITHUB_OUTPUT"
-
-  wakeup:
-    needs: prepare
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    strategy:
-      matrix:
-        index: ${{ fromJson(needs.prepare.outputs.matrix) }}
-    steps:
-      - name: Resolve OAuth token from JSON array
-        env:
-          TOKENS_JSON: ${{ secrets.CLAUDE_CODE_OAUTH_TOKENS }}
-          INDEX: ${{ matrix.index }}
-        run: |
-          set -euo pipefail
-          TOKEN=$(printf '%s' "$TOKENS_JSON" | jq -r --argjson i "$INDEX" '.[$i]')
-          echo "::add-mask::$TOKEN"
-          echo "CLAUDE_TOKEN=$TOKEN" >> "$GITHUB_ENV"
-
-      - name: Run Claude (haiku, prompt='hi')
-        uses: anthropics/claude-code-action@v1
-        with:
-          claude_code_oauth_token: ${{ env.CLAUDE_TOKEN }}
-          prompt: "hi"
-          claude_args: |
-            --model haiku
-            --max-turns 1
+          LENGTH=$(printf '%s' "$TOKENS_JSON" | jq 'length')
+          for i in $(seq 0 $((LENGTH - 1))); do
+            TOKEN=$(printf '%s' "$TOKENS_JSON" | jq -r ".[$i]")
+            echo "::add-mask::$TOKEN"
+            CLAUDE_CODE_OAUTH_TOKEN="$TOKEN" claude -p "hi" --model haiku --max-turns 1
+          done

@@ -32,7 +32,7 @@ claude setup-token
 
 ## ワークフローのトリガー方法
 
-`workflow_dispatch` を叩くだけで、配列内の**全トークンに対して並列実行**されます。
+`workflow_dispatch` を叩くだけで、配列内の**全トークンに対して順番に実行**されます。
 
 ### gh CLI を使う場合
 
@@ -52,6 +52,6 @@ curl -X POST \
 
 ## 挙動
 
-1. `prepare` ジョブが `CLAUDE_CODE_OAUTH_TOKENS` 配列の長さからインデックス一覧を生成します。
-2. `wakeup` ジョブが matrix 展開され、各トークンに対して並列で `--model haiku --max-turns 1` + `"hi"` を実行します。
-3. トークン消費は最小限で、5 時間枠のリセット起算点だけが全アカウント同時に更新されます。
+1. Claude Code CLI (`@anthropic-ai/claude-code`) をランナーにインストールします。
+2. `CLAUDE_CODE_OAUTH_TOKENS` 配列をループし、各トークンで `claude -p "hi" --model haiku --max-turns 1` を実行します。
+3. トークン消費は最小限で、5 時間枠のリセット起算点が全アカウント分更新されます。
