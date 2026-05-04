@@ -7,25 +7,39 @@ permissions:
   contents: read
 
 jobs:
-  wakeup:
+  prepare:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - name: Resolve OAuth token from JSON array
+      - name: Build index matrix from token array
+        id: set-matrix
         env:
           TOKENS_JSON: ${{ secrets.CLAUDE_CODE_OAUTH_TOKENS }}
-          INDEX: ${{ inputs.index }}
         run: |
           set -euo pipefail
           if [ -z "${TOKENS_JSON:-}" ]; then
             echo "::error::Secret CLAUDE_CODE_OAUTH_TOKENS is not set"
             exit 1
           fi
-          TOKEN=$(printf '%s' "$TOKENS_JSON" | jq -r --argjson i "$INDEX" '.[$i] // empty')
-          if [ -z "$TOKEN" ]; then
-            echo "::error::No token at index $INDEX"
-            exit 1
-          fi
+          INDICES=$(printf '%s' "$TOKENS_JSON" | jq -c '[range(length)]')
+          echo "matrix=$INDICES" >> "$GITHUB_OUTPUT"
+
+  wakeup:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      matrix:
+        index: ${{ fromJson(needs.prepare.outputs.matrix) }}
+    steps:
+      - name: Resolve OAuth token from JSON array
+        env:
+          TOKENS_JSON: ${{ secrets.CLAUDE_CODE_OAUTH_TOKENS }}
+          INDEX: ${{ matrix.index }}
+        run: |
+          set -euo pipefail
+          TOKEN=$(printf '%s' "$TOKENS_JSON" | jq -r --argjson i "$INDEX" '.[$i]')
           echo "::add-mask::$TOKEN"
           echo "CLAUDE_TOKEN=$TOKEN" >> "$GITHUB_ENV"
 

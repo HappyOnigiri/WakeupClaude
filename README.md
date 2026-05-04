@@ -32,14 +32,12 @@ claude setup-token
 
 ## ワークフローのトリガー方法
 
+`workflow_dispatch` を叩くだけで、配列内の**全トークンに対して並列実行**されます。
+
 ### gh CLI を使う場合
 
 ```bash
-# index=0 のアカウント（配列の先頭）をウェイクアップ
-gh workflow run wakeup-claude.yml -f index=0
-
-# index=1 のアカウント（配列の2番目）をウェイクアップ
-gh workflow run wakeup-claude.yml -f index=1
+gh workflow run wakeup-claude.yml
 ```
 
 ### GitHub REST API を使う場合
@@ -49,20 +47,11 @@ curl -X POST \
   -H "Authorization: Bearer $GH_PAT" \
   -H "Accept: application/vnd.github+json" \
   https://api.github.com/repos/<owner>/<repo>/actions/workflows/wakeup-claude.yml/dispatches \
-  -d '{"ref":"main","inputs":{"index":"0"}}'
+  -d '{"ref":"main"}'
 ```
-
-> **注意:** REST API では `inputs` の値は文字列として渡す必要があります（`"0"` であり `0` ではない）。
 
 ## 挙動
 
-`--model haiku --max-turns 1` で `"hi"` を 1 回送るだけなので、トークン消費は最小限です。5 時間枠のリセット起算点だけが更新されます。
-
-## 複数アカウントの運用例
-
-配列インデックスとアカウントが 1 対 1 で対応します。外部スケジューラ（例: 別リポジトリの cron ワークフロー、curl を叩く cron デーモンなど）でアカウントごとに時間をずらして dispatch することで、各アカウントの 5 時間枠を任意の時刻に張り直せます。
-
-```
-06:00 → index=0 dispatch（アカウントAの枠を 06:00 起算に固定）
-07:30 → index=1 dispatch（アカウントBの枠を 07:30 起算に固定）
-```
+1. `prepare` ジョブが `CLAUDE_CODE_OAUTH_TOKENS` 配列の長さからインデックス一覧を生成します。
+2. `wakeup` ジョブが matrix 展開され、各トークンに対して並列で `--model haiku --max-turns 1` + `"hi"` を実行します。
+3. トークン消費は最小限で、5 時間枠のリセット起算点だけが全アカウント同時に更新されます。
