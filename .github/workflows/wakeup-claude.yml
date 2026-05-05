@@ -17,6 +17,8 @@ jobs:
       - name: Run Claude for all tokens
         env:
           TOKENS_JSON: ${{ secrets.CLAUDE_CODE_OAUTH_TOKENS }}
+          FORCE_COLOR: "1"
+          CLICOLOR_FORCE: "1"
         run: |
           set -euo pipefail
           if [ -z "${TOKENS_JSON:-}" ]; then
@@ -24,8 +26,15 @@ jobs:
             exit 1
           fi
           LENGTH=$(printf '%s' "$TOKENS_JSON" | jq 'length')
+          FAILED=0
           for i in $(seq 0 $((LENGTH - 1))); do
             TOKEN=$(printf '%s' "$TOKENS_JSON" | jq -r ".[$i]")
             echo "::add-mask::$TOKEN"
-            CLAUDE_CODE_OAUTH_TOKEN="$TOKEN" claude -p "hi" --model haiku --max-turns 1
+            echo "::group::Token $((i + 1)) / ${LENGTH}"
+            CLAUDE_CODE_OAUTH_TOKEN="$TOKEN" claude -p "hi" --model haiku --max-turns 1 || FAILED=$?
+            echo "::endgroup::"
+            if [ "$FAILED" -ne 0 ]; then
+              echo "::error::Token $((i + 1)) failed with exit code ${FAILED}"
+            fi
           done
+          exit "$FAILED"
