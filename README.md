@@ -4,6 +4,8 @@
   <img src=".github/resources/wakeup-claude.webp" alt="Wakeup Claude" width="600">
 </div>
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Claude Code のサブスクリプション枠は 5 時間ごとにリセットされます。このリポジトリは、任意の時刻に最小コストで API を 1 度呼び出し、5 時間枠のリセット時刻を能動的にコントロールするための GitHub Actions ワークフローです。
 
 ## セットアップ
@@ -59,3 +61,11 @@ curl -X POST \
 1. Claude Code CLI (`@anthropic-ai/claude-code`) をランナーにインストールします。
 2. `CLAUDE_CODE_OAUTH_TOKENS` 配列をループし、各トークンで `claude -p "hi" --model haiku --max-turns 1` を実行します。
 3. トークン消費は最小限で、5 時間枠のリセット起算点が全アカウント分更新されます。
+
+## コントリビュート
+
+バグ報告・機能アイデア・Pull Request、なんでも気軽にどうぞ！
+
+## ライセンス
+
+[MIT License](LICENSE)
