@@ -1,5 +1,9 @@
 # WakeupClaude
 
+<div align="center">
+  <img src=".github/resources/wakeup-claude.webp" alt="Wakeup Claude" width="600">
+</div>
+
 Claude Code のサブスクリプション枠は 5 時間ごとにリセットされます。このリポジトリは、任意の時刻に最小コストで API を 1 度呼び出し、5 時間枠のリセット時刻を能動的にコントロールするための GitHub Actions ワークフローです。
 
 ## セットアップ
